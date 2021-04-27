@@ -1,7 +1,7 @@
-// Supervisor is a very simple implementation of the Supervisor pattern used in
-// Erlang/OTP. It provides a mechanism for controlling/coordinating go-routines,
-// and encourages the principle of failing early by ensuring the timely restart
-// after any failures.
+// Package Supervisor is a very simple implementation of the Supervisor pattern
+// used in Erlang/OTP. It provides a mechanism for controlling/coordinating
+// go-routines, and encourages the principle of failing early by ensuring the
+// timely restart after any failures.
 package supervisor
 
 import (
@@ -24,13 +24,14 @@ type Supervisable func(context.Context, chan struct{})
 // of monitoring a given goroutine and restarting it upon failure, as well
 // as terminating or restarting it upon request.
 type Supervisor struct {
-	isSimple    bool
-	workers     []Supervisable
-	ctx         context.Context
-	stop        context.CancelFunc
-	wg          *sync.WaitGroup
-	workerCount int
-	hasStopped  bool
+	isSimple       bool
+	workers        []Supervisable
+	ctx            context.Context
+	stop           context.CancelFunc
+	wg             *sync.WaitGroup
+	workerCount    int
+	hasStopped     bool
+	runningWorkers int
 }
 
 // NewSimpleSupervisor returns a supervisor which can only run a single
@@ -59,7 +60,7 @@ type Options struct {
 	// further up the call chain.
 	Context context.Context
 	// Waiter allows the caller to block until the Supervisor has completed.
-	Waiter sync.WaitGroup
+	Waiter *sync.WaitGroup
 }
 
 // NewSupervisorWithOptions configures a new Supervisor using any options
@@ -84,23 +85,28 @@ func NewSupervisorWithOptions(opts *Options) *Supervisor {
 //
 // A call to run **is blocking**.
 func (s *Supervisor) Run() {
-	if !s.isSimple {
-		panic("not implemented")
+	for _, worker := range s.workers {
+		go s.runLoop(worker)
 	}
+}
 
+func (s *Supervisor) runLoop(worker Supervisable) {
 	if s.wg != nil {
 		s.wg.Add(1)
 		defer s.wg.Done()
 	}
 
-	s.hasStopped = false
+	// BUG(): This is a quick hack, and should be handled via the WaitGroup
+	// Just need to work out how to handle `.WithWaitGroup(sync.WaitGroup)`
+	// calls that happen in conjunction with an internal pre-existing one.
+	s.runningWorkers++
 	defer func() {
-		s.hasStopped = true
+		s.runningWorkers--
 	}()
 
 	for {
 		isDone := make(chan struct{})
-		go s.workers[0](s.ctx, isDone)
+		go worker(s.ctx, isDone)
 
 		<-isDone
 		if s.ctx.Err() != nil {

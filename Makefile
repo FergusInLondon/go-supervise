@@ -6,3 +6,9 @@ lint:
 
 test:
 	go test
+
+.PHONY: examples
+
+examples:
+	go build -o ./examples/bin/simple ./examples/simple/main.go
+	go build -o ./examples/bin/pipeline ./examples/pipeline/main.go
