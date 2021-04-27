@@ -5,7 +5,7 @@ docs:
 	@echo "pass"
 
 lint:
-	~/go/bin/golint # no, I haven't bothered with my GOPATH/PATH yet.
+	golint
 
 test:
 	go test

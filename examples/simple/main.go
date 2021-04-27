@@ -11,7 +11,7 @@ import (
 	supervisor "go.fergus.london/go-supervise"
 )
 
-func Supervisable(shouldPanic bool) supervisor.Supervisable {
+func generateSupervisable(shouldPanic bool) supervisor.Supervisable {
 	counter := 1
 
 	return func(ctx context.Context, completed chan struct{}) {
@@ -41,7 +41,7 @@ func Supervisable(shouldPanic bool) supervisor.Supervisable {
 }
 
 func main() {
-	s := supervisor.NewSimpleSupervisor(context.Background(), Supervisable(true))
+	s := supervisor.NewSimpleSupervisor(context.Background(), generateSupervisable(true))
 
 	go s.Run()
 	<-time.After(time.Millisecond * 3000)
