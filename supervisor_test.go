@@ -5,6 +5,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"go.uber.org/goleak"
 )
 
 type mockSupervisable struct {
@@ -52,6 +54,8 @@ func generateSupervisable(ms *mockSupervisable) Supervisable {
 //
 
 func Test_SupervisorMustTerminateWhenStopped(t *testing.T) {
+	defer goleak.VerifyNone(t)
+
 	ms := &mockSupervisable{}
 	s := NewSimpleSupervisor(context.Background(), generateSupervisable(ms))
 
@@ -87,11 +91,13 @@ func Test_SupervisorMustTerminateWhenStopped(t *testing.T) {
 }
 
 func Test_SupervisorMustRestartWorkerFollowingPanic(t *testing.T) {
+	defer goleak.VerifyNone(t)
+
 	ms := &mockSupervisable{
 		shouldPanic: true,
 	}
 	s := NewSimpleSupervisor(context.Background(), generateSupervisable(ms))
-	go s.Run()
+	s.Run()
 
 	<-time.After(time.Millisecond * 100)
 	s.Stop()
@@ -108,12 +114,14 @@ func Test_SupervisorMustRestartWorkerFollowingPanic(t *testing.T) {
 }
 
 func Test_SupervisorMustNotifyCallerWithWaitGroup(t *testing.T) {
+	defer goleak.VerifyNone(t)
+
 	ms := &mockSupervisable{}
 	wg := &sync.WaitGroup{}
 
 	s := NewSimpleSupervisor(context.Background(), generateSupervisable(ms))
 	s.WithWaitGroup(wg)
-	go s.Run()
+	s.Run()
 
 	wgComplete := false
 	go func() {
@@ -135,10 +143,11 @@ func Test_SupervisorMustNotifyCallerWithWaitGroup(t *testing.T) {
 }
 
 func Test_SupervisorShouldRestartWhenRequested(t *testing.T) {
-	ms := &mockSupervisable{}
+	defer goleak.VerifyNone(t)
 
+	ms := &mockSupervisable{}
 	s := NewSimpleSupervisor(context.Background(), generateSupervisable(ms))
-	go s.Run()
+	s.Run()
 
 	<-time.After(time.Millisecond * 100)
 	s.Restart()

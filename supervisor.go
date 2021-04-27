@@ -30,7 +30,6 @@ type Supervisor struct {
 	stop           context.CancelFunc
 	wg             *sync.WaitGroup
 	workerCount    int
-	hasStopped     bool
 	runningWorkers int
 }
 
@@ -82,8 +81,6 @@ func NewSupervisorWithOptions(opts *Options) *Supervisor {
 
 // Run is the entrypoint for the supervisor; calling run will configure
 // all the supplied Supervisables at the specified number of instances.
-//
-// A call to run **is blocking**.
 func (s *Supervisor) Run() {
 	for _, worker := range s.workers {
 		go s.runLoop(worker)
@@ -125,7 +122,7 @@ func (s *Supervisor) Restart() {
 	for {
 		// @todo - come on, man. This isn't the way.
 		<-time.After(time.Millisecond * 250)
-		if s.hasStopped {
+		if s.HasStopped() {
 			return
 		}
 	}
@@ -139,7 +136,7 @@ func (s *Supervisor) Stop() {
 
 // HasStopped returns a boolean stating wheter the Supervisor is running.
 func (s *Supervisor) HasStopped() bool {
-	return s.hasStopped
+	return (s.runningWorkers == 0)
 }
 
 // WithWaitGroup allows a WaitGroup to be specified and incremented
