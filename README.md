@@ -1,6 +1,4 @@
-# Go Supervise
-
-[![Go Report Card](https://goreportcard.com/badge/github.com/FergusInLondon/go-supervise)](https://goreportcard.com/report/github.com/FergusInLondon/go-supervise) - [![Github Workflow](https://github.com/FergusInLondon/go-supervise/actions/workflows/go.yml/badge.svg)] - [![Go Reference](https://pkg.go.dev/badge/go.fergus.london/go-supervise.svg)](https://pkg.go.dev/go.fergus.london/go-supervise)
+# Go Supervise [![Go Report Card](https://goreportcard.com/badge/github.com/FergusInLondon/go-supervise)](https://goreportcard.com/report/github.com/FergusInLondon/go-supervise) ![Github Workflow](https://github.com/FergusInLondon/go-supervise/actions/workflows/go.yml/badge.svg) [![Go Reference](https://pkg.go.dev/badge/go.fergus.london/go-supervise.svg)](https://pkg.go.dev/go.fergus.london/go-supervise)
 
 A simple implementation of Erlang/OTP's *Supervisor* pattern for Go. This allows the construction of Supervision Trees for pipelined go-routines. 
 
