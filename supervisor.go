@@ -1,4 +1,4 @@
-// Package Supervisor is a very simple implementation of the Supervisor pattern
+// Package supervisor is a very simple implementation of the Supervisor pattern
 // used in Erlang/OTP. It provides a mechanism for controlling/coordinating
 // go-routines, and encourages the principle of failing early by ensuring the
 // timely restart after any failures.
