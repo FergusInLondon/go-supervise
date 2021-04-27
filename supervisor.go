@@ -1,9 +1,7 @@
-// Package supervisor is a very simple implementation of the Supervisor
-// pattern used in Erlang/OTP; it provides control over worker goroutines
-// in addition to orchestration and failure management.
-//
-// This package also outlines the expectations that a goroutine must adhere
-// to for the Supervisor to work correctly.
+// Supervisor is a very simple implementation of the Supervisor pattern used in
+// Erlang/OTP. It provides a mechanism for controlling/coordinating go-routines,
+// and encourages the principle of failing early by ensuring the timely restart
+// after any failures.
 package supervisor
 
 import (
@@ -12,13 +10,13 @@ import (
 	"time"
 )
 
-// Supervisable specifies the expected signature of a Worker function.
-//
-// There are three expectations that a Supervisable is expected to adhere
-// to if the Supervisor is expected to be able to control it:
+// Supervisable specifies the required signature of a Worker function. To
+// correctly manage a Supervisable there are three requirements:
 //
 // 1. The Supervisable **must** handle context cancellation correctly;
+//
 // 2. The Supervisable **must** defer the close of `chan struct{}`;
+//
 // 3. The Supervisable **must** ensure that `recover()` is called.
 type Supervisable func(context.Context, chan struct{})
 
