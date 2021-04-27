@@ -1,8 +1,10 @@
 # Go Supervise
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/FergusInLondon/go-supervise)](https://goreportcard.com/report/github.com/FergusInLondon/go-supervise) - [![Github Workflow](https://github.com/FergusInLondon/go-supervise/actions/workflows/go.yml/badge.svg)] - [![Go Reference](https://pkg.go.dev/badge/go.fergus.london/go-supervise.svg)](https://pkg.go.dev/go.fergus.london/go-supervise)
+[![Go Report Card](https://goreportcard.com/badge/github.com/FergusInLondon/go-supervise)](https://goreportcard.com/report/github.com/FergusInLondon/go-supervise) - [![Github Workflow](https://github.com/FergusInLondon/go-supervise/actions/workflows/go.yml/badge.svg) - ![Go Reference](https://pkg.go.dev/badge/go.fergus.london/go-supervise.svg)](https://pkg.go.dev/go.fergus.london/go-supervise)
 
-A simple implementation of Erlang/OTP's *Supervisor* pattern for Go. This allows the construction of Supervision Trees for pipelined go-routines. 
+A simple implementation of Erlang/OTP's *Supervisor* pattern for Go. A Supervisor is a simple mechanism for improving fault-tolerance of concurrent processes; minimising interruptions in the event of any errors.
+
+![Example](https://d33wubrfki0l68.cloudfront.net/00f3a22cb236e9b62c6944440d74d2df16e9f277/92cc1/diagrams/go-pipeline.png)
 
 ## Why?
 
@@ -14,9 +16,9 @@ It's also a pattern I've found myself implementing in the past, and one that I'v
 
 Please see the automatically generated [go documentation](#) in addition to the [examples directory](./example).
 
-### Tips
+### NOTE
 
-- For resiliance/reliability purposes ensure that all worker functions are capable of recovering from a panic.
+- Workers - or `Supervisables` - **must** ensure that they capture panics via `recover()` and that they close the provided channel before closing. This can be done in one single deferred function. See the examples for more information.
 
 ## Development
 
