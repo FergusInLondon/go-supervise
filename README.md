@@ -12,7 +12,7 @@ It's also a pattern I've found myself implementing in the past, and one that I'v
 
 ## Usage
 
-Please see the automatically generated [go documentation](#) in addition to the [examples directory](./example).
+Please see the automatically generated [go documentation](https://pkg.go.dev/go.fergus.london/go-supervise) in addition to the [examples directory](./examples).
 
 ### NOTE
 
