@@ -67,24 +67,27 @@ func ActorWorker(actor Actor) Supervisable {
 			}
 		}
 
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case envelope, ok := <-actor.Mailbox():
-				if !ok {
+                for {
+                        select {
+                        case <-ctx.Done():
+                                return
+                        case envelope, ok := <-actor.Mailbox():
+                                if !ok {
 					return
 				}
 
-				switch envelope.Control {
-				case MessageRestart, MessageStop:
-					return
-				default:
-					actor.Handle(ctx, envelope.Payload)
-				}
-			}
-		}
-	}
+                                switch envelope.Control {
+                                case MessageRestart, MessageStop:
+                                        // Returning here ends the current worker loop. When running
+                                        // under a Supervisor the loop will be restarted unless the
+                                        // supervisor context has been cancelled.
+                                        return
+                                default:
+                                        actor.Handle(ctx, envelope.Payload)
+                                }
+                        }
+                }
+        }
 }
 
 func safeTerminate(ctx context.Context, terminator Terminator) {
