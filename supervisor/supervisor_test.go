@@ -2,7 +2,6 @@ package supervisor
 
 import (
 	"context"
-	"sync"
 	"testing"
 	"time"
 
@@ -20,12 +19,11 @@ type mockSupervisable struct {
 func generateSupervisable(ms *mockSupervisable) Supervisable {
 	ms.nCalls = 0
 	ms.nPanics = 0
-	return func(ctx context.Context, done chan struct{}) {
+	return func(ctx context.Context) {
 		defer func() {
 			if recover() != nil {
 				// test == nothing to do
 			}
-			close(done)
 			ms.isRunning = false
 		}()
 
@@ -57,7 +55,13 @@ func Test_SupervisorMustTerminateWhenStopped(t *testing.T) {
 	defer goleak.VerifyNone(t)
 
 	ms := &mockSupervisable{}
-	s := NewSimpleSupervisor(context.Background(), generateSupervisable(ms))
+	s, _ := NewSupervisorWithOptions(
+		context.Background(),
+		WithWorkers(SupervisableWorker{
+			Func:  generateSupervisable(ms),
+			Count: 1,
+		}),
+	)
 
 	isUnblocked := false
 	go func() {
@@ -85,7 +89,7 @@ func Test_SupervisorMustTerminateWhenStopped(t *testing.T) {
 		t.Error("supervisable not called")
 	}
 
-	if !s.HasStopped() {
+	if s.CurrentWorkerCount() != 0 {
 		t.Error("supervisor indicates it's still running")
 	}
 }
@@ -96,7 +100,14 @@ func Test_SupervisorMustRestartWorkerFollowingPanic(t *testing.T) {
 	ms := &mockSupervisable{
 		shouldPanic: true,
 	}
-	s := NewSimpleSupervisor(context.Background(), generateSupervisable(ms))
+	s, _ := NewSupervisorWithOptions(
+		context.Background(),
+		WithWorkers(SupervisableWorker{
+			Func:  generateSupervisable(ms),
+			Count: 1,
+		}),
+	)
+
 	s.Run()
 
 	<-time.After(time.Millisecond * 100)
@@ -117,15 +128,19 @@ func Test_SupervisorMustNotifyCallerWithWaitGroup(t *testing.T) {
 	defer goleak.VerifyNone(t)
 
 	ms := &mockSupervisable{}
-	wg := &sync.WaitGroup{}
 
-	s := NewSimpleSupervisor(context.Background(), generateSupervisable(ms))
-	s.WithWaitGroup(wg)
+	s, _ := NewSupervisorWithOptions(
+		context.Background(),
+		WithWorkers(SupervisableWorker{
+			Func:  generateSupervisable(ms),
+			Count: 1,
+		}),
+	)
 	s.Run()
 
 	wgComplete := false
 	go func() {
-		wg.Wait()
+		s.Wait()
 		wgComplete = true
 	}()
 
@@ -146,7 +161,14 @@ func Test_SupervisorShouldRestartWhenRequested(t *testing.T) {
 	defer goleak.VerifyNone(t)
 
 	ms := &mockSupervisable{}
-	s := NewSimpleSupervisor(context.Background(), generateSupervisable(ms))
+	s, _ := NewSupervisorWithOptions(
+		context.Background(),
+		WithWorkers(SupervisableWorker{
+			Func:  generateSupervisable(ms),
+			Count: 1,
+		}),
+	)
+
 	s.Run()
 
 	<-time.After(time.Millisecond * 100)

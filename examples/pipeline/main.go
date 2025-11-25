@@ -39,20 +39,17 @@ package main
 import (
 	"context"
 	"fmt"
-	"sync"
 	"time"
 
-	supervisor "go.fergus.london/go-supervise"
+	"go.fergus.london/go-supervise/supervisor"
 )
 
 func generateSupervisable(shouldPanic bool, id int, rx, tx chan int) supervisor.Supervisable {
-	return func(ctx context.Context, completed chan struct{}) {
+	return func(ctx context.Context) {
 		defer func() {
 			if recover() != nil {
 				fmt.Println("panicked!", id)
 			}
-
-			close(completed)
 		}()
 
 		for {
@@ -78,16 +75,18 @@ func main() {
 		ioChans[i] = make(chan int)
 	}
 
-	supervisorWorkers := make([]supervisor.Supervisable, 5)
+	supervisorWorkers := make([]supervisor.SupervisableWorker, 5)
 	for i := 0; i < 5; i++ {
-		supervisorWorkers[i] = generateSupervisable((i >= 3), i, ioChans[i], ioChans[i+1])
+		supervisorWorkers[i] = supervisor.SupervisableWorker{
+			Func:  generateSupervisable((i >= 3), i, ioChans[i], ioChans[i+1]),
+			Count: 0,
+		}
 	}
 
-	wg := &sync.WaitGroup{}
-	s := supervisor.NewSupervisorWithOptions(&supervisor.Options{
-		Workers: supervisorWorkers,
-		Waiter:  wg,
-	})
+	ctx, _ := context.WithCancel(context.Background())
+	s, _ := supervisor.NewSupervisorWithOptions(
+		ctx, supervisor.WithWorkers(supervisorWorkers...),
+	)
 	s.Run()
 
 	go func() {
@@ -106,7 +105,7 @@ func main() {
 
 	<-time.After(time.Millisecond * 1500)
 	s.Stop()
-	wg.Wait()
+	s.Wait()
 
 	fmt.Println("stopped supervisor")
 }

@@ -1,8 +1,11 @@
-package supervisor
+package actor
 
 import (
 	"context"
 	"fmt"
+
+	"go.fergus.london/go-supervise/logger"
+	"go.fergus.london/go-supervise/supervisor"
 )
 
 // ControlMessage denotes the control instruction associated with an Envelope.
@@ -48,52 +51,51 @@ type Terminator interface {
 
 // ActorWorker adapts an Actor to the Supervisable function signature, enabling
 // actors to be supervised without altering the Supervisor core.
-func ActorWorker(actor Actor) Supervisable {
-	return func(ctx context.Context, done chan struct{}) {
+func ActorWorker(actor Actor) supervisor.Supervisable {
+	return func(ctx context.Context) {
 		defer func() {
 			if r := recover(); r != nil {
-				log(fmt.Sprintf("recovered panic in actor: %v", r))
+				logger.Log(fmt.Sprintf("recovered panic in actor: %v", r))
 			}
 			if terminator, ok := actor.(Terminator); ok {
 				safeTerminate(ctx, terminator)
 			}
-			close(done)
 		}()
 
 		if initialiser, ok := actor.(Initialiser); ok {
 			if err := initialiser.Init(ctx); err != nil {
-				log(fmt.Sprintf("actor init failed: %v", err))
+				logger.Log(fmt.Sprintf("actor init failed: %v", err))
 				return
 			}
 		}
 
-                for {
-                        select {
-                        case <-ctx.Done():
-                                return
-                        case envelope, ok := <-actor.Mailbox():
-                                if !ok {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case envelope, ok := <-actor.Mailbox():
+				if !ok {
 					return
 				}
 
-                                switch envelope.Control {
-                                case MessageRestart, MessageStop:
-                                        // Returning here ends the current worker loop. When running
-                                        // under a Supervisor the loop will be restarted unless the
-                                        // supervisor context has been cancelled.
-                                        return
-                                default:
-                                        actor.Handle(ctx, envelope.Payload)
-                                }
-                        }
-                }
-        }
+				switch envelope.Control {
+				case MessageRestart, MessageStop:
+					// Returning here ends the current worker loop. When running
+					// under a Supervisor the loop will be restarted unless the
+					// supervisor context has been cancelled.
+					return
+				default:
+					actor.Handle(ctx, envelope.Payload)
+				}
+			}
+		}
+	}
 }
 
 func safeTerminate(ctx context.Context, terminator Terminator) {
 	defer func() {
 		if r := recover(); r != nil {
-			log(fmt.Sprintf("recovered panic in actor termination: %v", r))
+			logger.Log(fmt.Sprintf("recovered panic in actor termination: %v", r))
 		}
 	}()
 	terminator.Terminate(ctx)

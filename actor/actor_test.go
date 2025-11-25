@@ -1,4 +1,4 @@
-package supervisor
+package actor
 
 import (
 	"context"
@@ -10,7 +10,7 @@ import (
 
 type testActor struct {
 	mailbox       chan Envelope
-	handled       []interface{}
+	handled       []any
 	initCalled    int
 	terminateCall int
 	panicOnHandle bool
@@ -20,7 +20,7 @@ func (a *testActor) Mailbox() <-chan Envelope {
 	return a.mailbox
 }
 
-func (a *testActor) Handle(ctx context.Context, msg interface{}) {
+func (a *testActor) Handle(ctx context.Context, msg any) {
 	if a.panicOnHandle {
 		panic("handle panic")
 	}
@@ -44,13 +44,12 @@ func TestActorWorkerProcessesMessagesAndStops(t *testing.T) {
 	worker := ActorWorker(actor)
 
 	ctx, cancel := context.WithCancel(context.Background())
-	done := make(chan struct{})
-	go worker(ctx, done)
+	go worker(ctx)
 
 	actor.mailbox <- Envelope{Payload: "hello"}
 	actor.mailbox <- Envelope{Control: MessageStop}
 
-	<-done
+	<-time.After(time.Second)
 	cancel()
 
 	if len(actor.handled) != 1 {
@@ -69,12 +68,12 @@ func TestActorWorkerHandlesContextCancellation(t *testing.T) {
 	worker := ActorWorker(actor)
 
 	ctx, cancel := context.WithCancel(context.Background())
-	done := make(chan struct{})
-	go worker(ctx, done)
+	go worker(ctx)
 
+	<-time.After(500 * time.Millisecond)
 	cancel()
-	<-done
 
+	<-time.After(500 * time.Millisecond)
 	if actor.terminateCall != 1 {
 		t.Fatalf("terminate should be called after context cancellation, got %d", actor.terminateCall)
 	}
@@ -87,13 +86,13 @@ func TestActorWorkerRecoversPanics(t *testing.T) {
 	worker := ActorWorker(actor)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
-	done := make(chan struct{})
-	go worker(ctx, done)
+	go worker(ctx)
 
 	actor.mailbox <- Envelope{Payload: "boom"}
-	<-done
+	<-time.After(500 * time.Millisecond)
 	cancel()
 
+	<-time.After(500 * time.Millisecond)
 	if actor.initCalled != 1 {
 		t.Fatalf("init should be called before handling messages, got %d", actor.initCalled)
 	}
@@ -106,11 +105,10 @@ func TestActorWorkerHandlesRestartMessage(t *testing.T) {
 	worker := ActorWorker(actor)
 
 	ctx, cancel := context.WithCancel(context.Background())
-	done := make(chan struct{})
-	go worker(ctx, done)
+	go worker(ctx)
 
 	actor.mailbox <- Envelope{Control: MessageRestart}
-	<-done
+	<-time.After(time.Second)
 	cancel()
 
 	if len(actor.handled) != 0 {

@@ -1,4 +1,9 @@
-package supervisor
+package logger
+
+import (
+	"fmt"
+	"os"
+)
 
 // Logger is a simple interface for logging output during the execution
 // of a supervision tree. Note that in an attempt at making this package
@@ -17,8 +22,8 @@ func WithLogger(l Logger) {
 	logger = l
 }
 
-func log(msg string) {
-	if logger != nil {
-		logger.Println(msg)
+func Log(msg string) {
+	if logger == nil {
+		fmt.Fprintln(os.Stderr, msg)
 	}
 }

@@ -6,23 +6,23 @@ The go-routine is configured to increment a counter every 250ms, and then
 panic every third iteration. It prints it's status to stdout, but as the
 Supervisor keeps the go-routine executing, it looks uninterrupted.
 
-    $ ./examples/bin/simple
-    Got new count 2
-    Got new count 3
-    panicked!
-    Got new count 4
-    Got new count 5
-    Got new count 6
-    panicked!
-    Got new count 7
-    Got new count 8
-    Got new count 9
-    panicked!
-    Got new count 10
-    Got new count 11
-    Got new count 12
-    panicked!
-    stopped supervisor
+	$ ./examples/bin/simple
+	Got new count 2
+	Got new count 3
+	panicked!
+	Got new count 4
+	Got new count 5
+	Got new count 6
+	panicked!
+	Got new count 7
+	Got new count 8
+	Got new count 9
+	panicked!
+	Got new count 10
+	Got new count 11
+	Got new count 12
+	panicked!
+	stopped supervisor
 */
 package main
 
@@ -31,19 +31,17 @@ import (
 	"fmt"
 	"time"
 
-	supervisor "go.fergus.london/go-supervise"
+	supervisor "go.fergus.london/go-supervise/supervisor"
 )
 
 func generateSupervisable(shouldPanic bool) supervisor.Supervisable {
 	counter := 1
 
-	return func(ctx context.Context, completed chan struct{}) {
+	return func(ctx context.Context) {
 		defer func() {
 			if recover() != nil {
 				fmt.Println("panicked!")
 			}
-
-			close(completed)
 		}()
 
 		for {
@@ -64,7 +62,13 @@ func generateSupervisable(shouldPanic bool) supervisor.Supervisable {
 }
 
 func main() {
-	s := supervisor.NewSimpleSupervisor(context.Background(), generateSupervisable(true))
+	ctx, _ := context.WithCancel(context.Background())
+	s, _ := supervisor.NewSupervisorWithOptions(ctx, supervisor.WithWorkers(
+		supervisor.SupervisableWorker{
+			Func:  generateSupervisable(true),
+			Count: 1,
+		},
+	))
 
 	s.Run()
 	<-time.After(time.Millisecond * 3000)
