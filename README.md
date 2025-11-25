@@ -18,6 +18,14 @@ Please see the automatically generated [go documentation](https://pkg.go.dev/go.
 
 - Workers - or `Supervisables` - **must** ensure that they capture panics via `recover()` and that they close the provided channel before closing. This can be done in one single deferred function. See the examples for more information.
 
+### Actors
+
+Actors provide a message-driven wrapper around the existing `Supervisable` contract. Implement the `Actor` interface by exposing a mailbox channel and a `Handle(ctx, msg interface{})` function; optional `Init` and `Terminate` hooks let you set up and tear down resources.
+
+Use `ActorWorker` to adapt an Actor to the `Supervisable` signature so it can be run by a `Supervisor` without changing existing supervisor code. Control messages are supported via the `Envelope` type: send `MessageStop` or `MessageRestart` to end the current worker loop, while leaving `MessageData` (the default) for your own payloads. Under a supervisor these control messages simply return from the worker, so the supervisor will restart the actor unless the supervisor has been stopped or its context cancelled—call `Supervisor.Stop()` when you need the loop to end permanently.
+
+Panic recovery and signalling completion are handled for you in `ActorWorker`, mirroring the requirements on Supervisables. If your actor panics, the worker is recovered and the Supervisor will restart it; the `done` channel is always closed on exit and the `Terminate` hook is called where implemented.
+
 ## Development
 
 See the `Makefile` for tasks; but there's tests, linting, and docs.
