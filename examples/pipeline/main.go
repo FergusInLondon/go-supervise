@@ -79,7 +79,7 @@ func main() {
 	for i := 0; i < 5; i++ {
 		supervisorWorkers[i] = supervisor.SupervisableWorker{
 			Func:  generateSupervisable((i >= 3), i, ioChans[i], ioChans[i+1]),
-			Count: 0,
+			Count: 1,
 		}
 	}
 
